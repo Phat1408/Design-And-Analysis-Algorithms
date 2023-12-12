@@ -3,38 +3,33 @@ import java.util.*;
 public class Main {
     public static void main(String[] args) {       
         
-        // HashSet<Integer> test = new HashSet<Integer>();
-        // test.add(1);
-        // test.add(2);
-        // test.add(3);
+        ArrayList<HashMap<Integer, Double>> UD = new ArrayList<HashMap<Integer, Double>>(){
+            {
+                add(new HashMap<Integer, Double>(){{put(1, 0.4); put(2, 1.0); put(3, 0.3);}});
+                add(new HashMap<Integer, Double>(){{put(1, 1.0); put(2, 0.8);}});
+            }
+        };
 
-        // Itemset<Integer> itemset = new Itemset<Integer>(test);
-        // System.out.println(itemset.getItems());
+        HashMap<Integer, Double> W = new HashMap<Integer, Double>(){
+            {
+                put(1, 0.6);
+                put(2, 0.8);
+                put(3, 0.4);
+            }
+        };
 
-        HashMap<Integer, Double> W = new HashMap<Integer, Double>();
-        W.put(1, 0.8);
-        W.put(2, 0.5);
-        W.put(5, 0.7);
+        Apriori<Integer> ap = new Apriori<Integer>(UD, W);
+        HashSet<Integer> X1 = new HashSet<Integer>(){
+            {add(1); add(3); add(2);}
+        };
+        HashSet<Integer> X2 = new HashSet<Integer>(){
+            {add(3); add(2); add(4);}
+        };
 
-        HashSet<Integer> itemset = new HashSet<Integer>();
-        itemset.add(1);
-        itemset.add(2);
-        
-        ArrayList<Integer> list = new ArrayList<Integer>(Arrays.asList(1, 2, 3, 4));
-        System.out.println(Double.compare(-1.0, -1.00000000000));
-
-
-        // Transaction<Integer> trans = new Transaction<Integer>(hm);
-        // System.out.println(trans.getItemsAndProbabilities());
-        // System.out.println(hm.get(1));
-
-        // HashSet<Integer> hs = new HashSet<Integer>();
-        // hs.add(1);
-        // hs.add(2);
-        // hs.add(3);
-        // for(Integer item : hs){
-        //     System.out.println(item);
-        // }
+        // System.out.println(new HashSet<Integer>(){{addAll(X1); addAll(X2);}});
+        // double wX = ap.getWeight(X);
+        // System.out.println(wX);
+        // System.out.println(Arrays.toString(ap.probXInUD(X, 1, 0.6, wX)));
 
     }
 }
