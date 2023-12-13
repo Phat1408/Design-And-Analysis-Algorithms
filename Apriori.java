@@ -1,6 +1,6 @@
 import java.util.*;
 
-public class Apriori<T> implements Cloneable{
+public class Apriori<T>{
     ArrayList<HashMap<T, Double>> UD;
     HashMap<T, Double> W;
 
@@ -14,7 +14,7 @@ public class Apriori<T> implements Cloneable{
         for(T item: X){
             result += this.W.get(item);
         }
-        return result;
+        return (1.0/X.size()) * result;
     }
 
     public Boolean isSubset(HashSet<T> X, HashMap<T, Double> Ti){
@@ -22,8 +22,10 @@ public class Apriori<T> implements Cloneable{
     }
 
     public double probXInTi(HashSet<T> X, HashMap<T, Double> Ti){
-        double result = 1.0;
+        double result = 0.0;
         if(this.isSubset(X, Ti)){
+            // System.out.printf("X: %s - Ti: %s\n", X, Ti);
+            result = 1.0;
             for(T item: X){
                 result *= Ti.get(item);
             }
@@ -31,7 +33,7 @@ public class Apriori<T> implements Cloneable{
         return result;
     }
 
-    public HashSet<T> itemInPrevWPFI(ArrayList<HashSet<T>> WPFI){
+    public HashSet<T> itemsInPrevWPFI(HashSet<HashSet<T>> WPFI){
         HashSet<T> items = new HashSet<T>();
         for(HashSet<T> wPFI : WPFI){
             items.addAll(wPFI);
@@ -56,7 +58,7 @@ public class Apriori<T> implements Cloneable{
                 if(j < n)
                     if(Double.compare(storedProbXInT[j], -1.0) == 0){
                         storedProbXInT[j] = this.probXInTi(X, this.UD.get(j));
-                        System.out.printf("%d: %f\n", j, storedProbXInT[j]);
+                        // System.out.printf("%d: %f\n", j, storedProbXInT[j]);
                     }
 
                 if(i <= j){
@@ -64,9 +66,9 @@ public class Apriori<T> implements Cloneable{
                     currLine[j] = probXInTj_1  * prevLine[j - 1] + (1 - probXInTj_1 )* currLine[j - 1];
 
                     // Có thể tỉa ở P_(msup - k),(|T| - k), 1<= k <= msup nếu P này bé hơn t
-                    // if(i == msup - i && j == n - i) // tránh out of index cho currLine
-                    //     if (Double.compare(currLine[n - i], t/wX) == -1) 
-                    //         return new double[]{-1.0, Arrays.stream(storedProbXInT).sum()};
+                    if(i == msup - i && j == n - i) // tránh out of index cho currLine
+                        if (Double.compare(currLine[n - i], t/wX) == -1) 
+                            return new double[]{-1.0, Arrays.stream(storedProbXInT).sum()};
                 }
             }
             prevLine = Arrays.copyOf(currLine, currLine.length);
@@ -80,7 +82,28 @@ public class Apriori<T> implements Cloneable{
         
     }
 
-    public HashSet<HashSet<T>> getSize1WPFI(HashSet<T> I){
+    public HashSet<T> itemsInUD(){
+        HashSet<T> I = new HashSet<T>();
+        for(HashMap<T, Double> tran : this.UD){
+            I.addAll(tran.keySet());
+        }
+        return I;
+    }
+
+    public T argmin(HashSet<T> X){
+        T minWeightItem = null;
+        double min = Double.MAX_VALUE;
+        for(T item : X){
+            double wItem = this.W.get(item);
+            if(wItem < min){
+                min = wItem;
+                minWeightItem = item;
+            }
+        }
+        return minWeightItem;
+    }
+
+    public HashSet<HashSet<T>> genSize1WPFI(HashSet<T> I){
         HashSet<HashSet<T>> WPFI1 = new HashSet<HashSet<T>>();
         for(T item : I){
             WPFI1.add(new HashSet<>(){{add(item);}});
@@ -88,8 +111,8 @@ public class Apriori<T> implements Cloneable{
         return WPFI1;
     }
 
-    public Object[] scanFindKItemset(ArrayList<HashSet<T>> WPFIK, int msup, double t){
-        ArrayList<HashSet<T>> realWPFIK = new ArrayList<HashSet<T>>();
+    public Object[] scanFindKItemset(HashSet<HashSet<T>> WPFIK, int msup, double t){
+        HashSet<HashSet<T>> realWPFIK = new HashSet<HashSet<T>>();
         ArrayList<Double> UWPFI = new ArrayList<Double>();
 
         for(HashSet<T> wPFI : WPFIK){
@@ -108,5 +131,76 @@ public class Apriori<T> implements Cloneable{
         results[0] = realWPFIK;
         results[1] = UWPFI;
         return results;
+    }
+
+    public HashSet<HashSet<T>> genWPFIApriori(HashSet<HashSet<T>> prevWPFI, ArrayList<Double> UWPFI, ArrayList<Double> UI,
+        HashSet<T> I, double alpha, int n, double t, double uHat){
+
+        HashSet<HashSet<T>> Ck = new HashSet<HashSet<T>>();
+        HashSet<T> Ia = this.itemsInPrevWPFI(prevWPFI);
+        int i = 0;
+
+        for(HashSet<T> X : prevWPFI){
+            // copy X
+            HashSet<T> XCopy = new HashSet<T>(X);
+            // copy Ia
+            HashSet<T> IaDiffX = new HashSet<T>(Ia);
+            // Ia - X
+            IaDiffX.removeAll(XCopy);
+
+            for(T Ii : IaDiffX){
+                // copy X
+                HashSet<T> XUinonIi = new HashSet<T>(X);
+                // X U Ii
+                XUinonIi.addAll(new HashSet<T>(){{add(Ii);}});
+
+                // w(X U Ii) >= t 
+                if(Double.compare(this.getWeight(XUinonIi), t) >= 0){
+
+                    double uX = UWPFI.get(i); // Vẫn đảm bảo được thứ tự
+                    double uIi = UI.get(i);
+
+                    // min(uX, uIi) >= uHat and uX * uIi >= alpha * n * uHat
+                    if(Double.compare(Math.min(uX, uIi), uHat) >= 0 &&
+                    Double.compare(uX * uIi, alpha * n * uHat) >= 0){
+                        Ck.add(XUinonIi);
+                    }
+                }
+            }
+
+            T Im = this.argmin(XCopy);
+            // copy I
+            HashSet<T> IDiffIaDiffX = new HashSet<T>(I);
+            // I - Ia - X
+            IDiffIaDiffX.removeAll(IaDiffX);
+
+            for(T Ii : IDiffIaDiffX){
+                // copy X
+                HashSet<T> XUinonIi = new HashSet<T>(X);
+                // X U Ii
+                XUinonIi.addAll(new HashSet<T>(){{add(Ii);}});
+
+                // w(X U Ii) >= t and w(Ii) < w(Im)
+                if(Double.compare(this.getWeight(XUinonIi), t) >= 0 &&
+                Double.compare(this.W.get(Ii), this.W.get(Im)) < 0){
+
+                    double uX = UWPFI.get(i);
+                    double uIi = UI.get(i);
+
+                    // min(uX, uIi) >= uHat and uX * uIi >= alpha * n * uHat
+                    if(Double.compare(Math.min(uX, uIi), uHat) >= 0 &&
+                    Double.compare(uX * uIi, alpha * n * uHat) >= 0){
+                        Ck.add(XUinonIi);
+                    }
+                }
+            }
+
+            i+= 1;
+        }
+        return Ck;
+    }
+
+    public ArrayList<HashSet<T>> solve(ArrayList<Double> UI){
+        return null;
     }
 }
