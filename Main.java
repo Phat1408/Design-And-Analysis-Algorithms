@@ -27,22 +27,28 @@ public class Main {
         // };
         
         // Gnenerate Dataset
-        UncertainDataset ud = new UncertainDataset(1, 3, 50);
+        UncertainDataset ud = new UncertainDataset(2, 15, 1000);
         ud.gen();
-        System.out.println(ud.UI);
-        System.out.println("--------------------------------");
-        for(int i = 0; i < ud.length; i++){
-            System.out.println(ud.UD.get(i));
-        }
-        System.out.println("--------------------------------");
+        // System.out.println(ud.UI);
+        // System.out.println("--------------------------------");
+        // for(int i = 0; i < ud.length; i++){
+        //     System.out.println(ud.UD.get(i));
+        // }
+        // System.out.println("--------------------------------");
 
 
         // Generate size 1 candidate and scan them
-        // Apriori<Integer> ap = new Apriori<>(ud.UD, ud.W, ud.UI);
+        double t = 0.5, alpha = 0.6;
+        int msup = (int) Math.round(0.01 * ud.length);
+        // double uHat = (double) msup;
+        Apriori<Integer> ap = new Apriori<Integer>(ud.UD, ud.W, ud.UI, msup, alpha, t);
+        System.out.println(ap.solve());
         // HashSet<HashSet<Integer>> C1 = ap.genSize1WPFI();
         // System.out.println();
-        // Object[] packed = ap.scanFindKItemset(C1, 2, 0.6);
-        // System.out.println(packed[0]);
+        
+        // ap.scanFindKItemset(C1, msup, t);
+        // HashSet<HashSet<Integer>> C2 = ap.genWPFIApriori(ap.WPFIK, ap.UWPFIK, alpha, ud.length, t, uHat);
+        // System.out.println(C2);
         
     }
 }

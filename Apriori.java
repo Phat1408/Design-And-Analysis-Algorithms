@@ -1,16 +1,24 @@
 import java.util.*;
 
 public class Apriori<T>{
+    int msup, n;
+    double alpha, t;
     ArrayList<HashMap<T, Double>> UD;
     HashMap<T, Double> W;
     // some helpers
     HashMap<Object, Double> UI;
     HashSet<T> I;
+    // Holding current size-k-WPFI and current U of size-k-WPFI
+    HashSet<HashSet<T>> WPFIK = new HashSet<HashSet<T>>();
+    HashMap<Object, Double> UWPFIK = new HashMap<Object, Double>();
 
-    public Apriori(ArrayList<HashMap<T, Double>> UD, HashMap<T, Double> W, HashMap<Object, Double> UI){
+    public Apriori(ArrayList<HashMap<T, Double>> UD, HashMap<T, Double> W, HashMap<Object, Double> UI, int msup, double alpha, double t){
         this.UD = UD;
         this.W = W;
         this.UI = UI;
+        this.msup = msup;
+        this.n = this.UD.size();
+        this.t = t;
         this.I = this.itemsInUD();
     }
 
@@ -124,9 +132,9 @@ public class Apriori<T>{
         return WPFI1;
     }
 
-    public Object[] scanFindKItemset(HashSet<HashSet<T>> WPFIK, int msup, double t){
+    public void scanFindKItemset(HashSet<HashSet<T>> WPFIK, int msup, double t){
         HashSet<HashSet<T>> realWPFIK = new HashSet<HashSet<T>>();
-        HashMap<Object, Double> UWPFI = new HashMap<Object, Double>();
+        HashMap<Object, Double> UWPFIK = new HashMap<Object, Double>();
 
         for(HashSet<T> wPFI : WPFIK){
             // System.out.println(wPFI);
@@ -137,15 +145,17 @@ public class Apriori<T>{
             // packed[1] : uX
             if(this.isWPFI(wX, packed[0], t)){
                 realWPFIK.add(wPFI);
-                UWPFI.put(wPFI, packed[1]);
+                UWPFIK.put(wPFI, packed[1]);
                 // System.out.printf("wPFI: %s - uX: %f\n", wPFI, UWPFI.get(wPFI));
             }
         }
         
-        Object[] results = new Object[2];
-        results[0] = realWPFIK;
-        results[1] = UWPFI;
-        return results;
+        // Object[] results = new Object[2];
+        // results[0] = realWPFIK;
+        // results[1] = UWPFI;
+        // return results;
+        this.WPFIK = realWPFIK;
+        this.UWPFIK = UWPFIK;
     }
 
 
@@ -212,7 +222,22 @@ public class Apriori<T>{
         return Ck;
     }
 
-    public ArrayList<HashSet<T>> solve(ArrayList<Double> UI){
-        return null;
+    public HashSet<HashSet<T>> solve(){
+        ArrayList<HashSet<HashSet<T>>> WPFI = new ArrayList<>();
+        HashSet<HashSet<T>> C0 = this.genSize1WPFI();
+        double uHat = this.msup; // msup - 1
+        scanFindKItemset(C0, msup, this.t);
+        WPFI.add(this.WPFIK);
+        int k = 1;
+        // System.out.println(WPFI.get(k - 1));
+        while(!WPFI.get(k - 1).isEmpty()){
+            // System.out.println(WPFI.get(k - 1));
+            HashSet<HashSet<T>> Ck = this.genWPFIApriori(this.WPFIK, this.UWPFIK, this.alpha, this.n, this.t, uHat);
+            // System.out.println(Ck);
+            scanFindKItemset(Ck, this.msup, this.t);
+            WPFI.add(this.WPFIK);
+            k++;
+        }
+        return WPFI.get(k - 2);
     }
 }
