@@ -1,26 +1,28 @@
 import java.util.*;
 
 public class Itemset<T>{
-    private HashSet<T> items;
+    private HashSet<T> set;
+    private double u;
 
     public Itemset(){
-        this.items = new HashSet<T>();
+        this.set = new HashSet<T>();
+        this.u = 0.0;
     }
 
-    public Itemset(HashSet<T> items){
-        this.items = items;
+    public Itemset(HashSet<T> set){
+        this.set = set;
+        this.u = 0.0;
     }
 
-    public Itemset(Itemset<T> itemset){
-        this.items = itemset.items;
+    public HashSet<T> getSet(){
+        return this.set;
     }
 
-    public void setItems(HashSet<T> items){
-        this.items = items;
+    public void setU(double u){
+        this.u = u;
     }
 
-    public HashSet<T> getItems(){
-        return this.items;
+    public double getU(){
+        return this.u;
     }
-
 }
