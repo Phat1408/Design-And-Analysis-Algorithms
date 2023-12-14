@@ -1,10 +1,10 @@
 import java.util.*;
 
 public class Apriori<T>{
-    int msup, n;
-    double alpha, t;
     ArrayList<HashMap<T, Double>> UD;
     HashMap<T, Double> W;
+    int msup, n;
+    double alpha, t, uHat;
     // some helpers
     HashMap<Object, Double> UI;
     HashSet<T> I;
@@ -20,6 +20,7 @@ public class Apriori<T>{
         this.n = this.UD.size();
         this.t = t;
         this.I = this.itemsInUD();
+        this.uHat = (double) this.msup;
     }
 
     public double getWeight(HashSet<T> X){
@@ -124,22 +125,22 @@ public class Apriori<T>{
         return minWeightItem;
     }
 
-    public HashSet<HashSet<T>> genSize1WPFI(){
+    public void genSize1WPFI(){
         HashSet<HashSet<T>> WPFI1 = new HashSet<HashSet<T>>();
         for(T item : this.I){
             WPFI1.add(new HashSet<>(){{add(item);}});
         }
-        return WPFI1;
+        this.WPFIK = WPFI1;
     }
 
-    public void scanFindKItemset(HashSet<HashSet<T>> WPFIK, int msup, double t){
+    public void scanFindKItemset(){
         HashSet<HashSet<T>> realWPFIK = new HashSet<HashSet<T>>();
         HashMap<Object, Double> UWPFIK = new HashMap<Object, Double>();
 
-        for(HashSet<T> wPFI : WPFIK){
+        for(HashSet<T> wPFI : this.WPFIK){
             // System.out.println(wPFI);
             double wX = this.getWeight(wPFI);
-            double[] packed = this.probXInUD(wPFI, msup, t, wX);
+            double[] packed = this.probXInUD(wPFI, this.msup, this.t, wX);
             // System.out.println(Arrays.toString(packed));
             // packed[0] : P(Sup(X) >= msup)
             // packed[1] : uX
@@ -159,12 +160,12 @@ public class Apriori<T>{
     }
 
 
-    public HashSet<HashSet<T>> genWPFIApriori(HashSet<HashSet<T>> prevWPFI, HashMap<Object, Double> UWPFI, double alpha, int n, double t, double uHat){
+    public void genWPFIApriori(){
 
         HashSet<HashSet<T>> Ck = new HashSet<HashSet<T>>();
-        HashSet<T> Ia = this.itemsInPrevWPFI(prevWPFI);
+        HashSet<T> Ia = this.itemsInPrevWPFI(this.WPFIK);
   
-        for(HashSet<T> X : prevWPFI){
+        for(HashSet<T> X : this.WPFIK){
             // copy X
             HashSet<T> XCopy = new HashSet<T>(X);
             // copy Ia
@@ -181,12 +182,12 @@ public class Apriori<T>{
                 // w(X U Ii) >= t 
                 if(Double.compare(this.getWeight(XUnionIi), t) >= 0){
 
-                    double uX = UWPFI.get(X); // Vẫn đảm bảo được thứ tự
-                    double uIi = UI.get(Ii); // Xem lại
+                    double uX = this.UWPFIK.get(X); // Vẫn đảm bảo được thứ tự
+                    double uIi = this.UI.get(Ii); // Xem lại
 
                     // min(uX, uIi) >= uHat and uX * uIi >= alpha * n * uHat
-                    if(Double.compare(Math.min(uX, uIi), uHat) >= 0 &&
-                    Double.compare(uX * uIi, alpha * n * uHat) >= 0){
+                    if(Double.compare(Math.min(uX, uIi), this.uHat) >= 0 &&
+                    Double.compare(uX * uIi, this.alpha * this.n * this.uHat) >= 0){
                         Ck.add(XUnionIi);
                     }
                 }
@@ -208,33 +209,30 @@ public class Apriori<T>{
                 if(Double.compare(this.getWeight(XUinonIi), t) >= 0 &&
                 Double.compare(this.W.get(Ii), this.W.get(Im)) < 0){
 
-                    double uX = UWPFI.get(X);
-                    double uIi = UI.get(Ii);
+                    double uX = this.UWPFIK.get(X);
+                    double uIi = this.UI.get(Ii);
 
                     // min(uX, uIi) >= uHat and uX * uIi >= alpha * n * uHat
-                    if(Double.compare(Math.min(uX, uIi), uHat) >= 0 &&
-                    Double.compare(uX * uIi, alpha * n * uHat) >= 0){
+                    if(Double.compare(Math.min(uX, uIi), this.uHat) >= 0 &&
+                    Double.compare(uX * uIi, this.alpha * this.n * this.uHat) >= 0){
                         Ck.add(XUinonIi);
                     }
                 }
             }
         }
-        return Ck;
+        this.WPFIK = Ck;
     }
 
     public HashSet<HashSet<T>> solve(){
         ArrayList<HashSet<HashSet<T>>> WPFI = new ArrayList<>();
-        HashSet<HashSet<T>> C0 = this.genSize1WPFI();
-        double uHat = this.msup; // msup - 1
-        scanFindKItemset(C0, msup, this.t);
+        this.genSize1WPFI();
+        this.scanFindKItemset();
         WPFI.add(this.WPFIK);
         int k = 1;
-        // System.out.println(WPFI.get(k - 1));
+
         while(!WPFI.get(k - 1).isEmpty()){
-            // System.out.println(WPFI.get(k - 1));
-            HashSet<HashSet<T>> Ck = this.genWPFIApriori(this.WPFIK, this.UWPFIK, this.alpha, this.n, this.t, uHat);
-            // System.out.println(Ck);
-            scanFindKItemset(Ck, this.msup, this.t);
+            this.genWPFIApriori();
+            this.scanFindKItemset();
             WPFI.add(this.WPFIK);
             k++;
         }
